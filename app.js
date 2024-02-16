@@ -1,5 +1,7 @@
 const express = require("express");
 
+const mongoose = require("mongoose");
+
 const bodyParser = require("body-parser");
 
 const feedRoutes = require("./routes/feed");
@@ -20,4 +22,14 @@ app.use((req, res, next) => {
 
 app.use("/feed", feedRoutes);
 
-app.listen(8080);
+mongoose
+  .connect(
+    "mongodb+srv://coolsuedeadidas:1password1@cluster0.s9dqd5j.mongodb.net/messages?retryWrites=true&w=majority"
+  )
+  .then((result) => {
+    app.listen(8080);
+    console.log("Server now active at Port 8080.");
+  })
+  .catch((err) => {
+    console.log(err);
+  });
