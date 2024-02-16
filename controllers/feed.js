@@ -70,3 +70,7 @@ exports.createPost = (req, res, next) => {
       next(err);
     });
 }; 
+
+exports.getPost = (req, res, next) => {
+
+}
