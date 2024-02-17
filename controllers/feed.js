@@ -29,6 +29,15 @@ exports.createPost = (req, res, next) => {
     throw error;
   }
 
+  //  w/ multer now registered, can now first check if an img was first uploaded
+  if (!req.file) {
+    const error = new Error("File image upload required to create a post");
+    error.statusCode = 422;
+    throw error;
+  }
+  // Added as workaround to issue loading images
+  const imageUrl = req.file.path.replace("\\", "/");
+
   // extract info from req body
   const title = req.body.title;
   const content = req.body.content;
@@ -37,7 +46,7 @@ exports.createPost = (req, res, next) => {
   const post = new Post({
     title: title,
     content: content,
-    imageUrl: "images/mystic_mountain.jpg",
+    imageUrl: imageUrl, // now to replace the dummy data with actual file upload
     creator: {
       name: "Mike Ramos",
     },
@@ -81,4 +90,10 @@ exports.getPost = (req, res, next) => {
       }
       next(err);
     });
+};
+
+// To Edit an existing post (We will create shortly!)
+// Added as workaround to issue loading images
+exports.updatePost = (req, res, next) => {
+  const imageUrl = req.file.path.replace("\\", "/");
 };
