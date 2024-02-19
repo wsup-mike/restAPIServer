@@ -6,14 +6,33 @@ const { validationResult } = require("express-validator");
 const Post = require("../models/post");
 
 exports.getPosts = (req, res, next) => {
-  Post.find()
+  //Pagination setup (2 posts per page)
+  const currentPage = req.query.page || 1; 
+  const perPage = 2; // Default # posts to display
+  let totalItems; // used to det. total # items in database
+  
+  // Add new Mongoose find() request: total # records
+  Post
+    .find()
+    .countDocuments()
+    .then(count => {
+      totalItems = count;
+
+       // Mongoose req. to get all posts in database to render
+       return Post
+        .find()
+        .skip((currentPage - 1) * perPage)
+        .limit(perPage);
+        
+    })
     .then((posts) => {
       res.status(200).json({
         message: "All existing posts fetched successfully!",
         posts: posts,
+        totalItems: totalItems
       });
     })
-    .catch((err) => {
+    .catch(err => {
       if (!err.statusCode) {
         err.statusCode = 500;
       }
