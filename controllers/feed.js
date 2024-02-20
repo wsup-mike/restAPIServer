@@ -160,7 +160,17 @@ exports.updatePost = (req, res, next) => {
         error.statusCode = 500;
         throw error;
       }
-      // ..if post is found in database
+
+      // Next, to verify if 'creator' of the post is equal to userId of the request (requestor)
+      if (post.creator.toString() !== req.userId) {
+       const error = new Error('Not authorized to edit or delete post.');
+       error.statusCode = 403;
+       throw error; 
+      }
+
+      // but if they ARE the 'creator'...
+
+
       // 1st check imageUrl of the prior existing post (To use new helper)
       if (imageUrl !== post.imageUrl) {
         // meaning it changed...
@@ -195,7 +205,15 @@ exports.deletePost = (req, res, next) => {
         error.statusCode = 400;
         throw error;
       }
-      // Verify identity of logged in user
+      
+      // Next, to verify if 'creator' of the post is equal to userId of the request (requestor)
+      if (post.creator.toString() !== req.userId) {
+        const error = new Error('Not authorized to edit or delete post.');
+        error.statusCode = 403;
+        throw error; 
+       }
+ 
+       // but if they ARE the 'creator'...they can proceed with deletion
 
       // Clear out the post's image stored
       clearImage(post.imageUrl);
@@ -204,7 +222,14 @@ exports.deletePost = (req, res, next) => {
       return Post.findByIdAndDelete(postId);
     })
     .then((result) => {
-      console.log(result);
+      // To 'pull our the reference' to original user of post
+      return User.findById(req.userId);    
+    })
+    .then(user => {
+      user.posts.pull(postId);
+      return user.save();
+    })
+    .then(result => {
       res.status(200).json({
         message: "Post has sucessfully been deleted!",
       });
