@@ -1,38 +1,36 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const { validationResult } = require("express-validator");
 
 const Post = require("../models/post");
+const User = require("../models/user");
 
 exports.getPosts = (req, res, next) => {
   //Pagination setup (2 posts per page)
-  const currentPage = req.query.page || 1; 
+  const currentPage = req.query.page || 1;
   const perPage = 2; // Default # posts to display
   let totalItems; // used to det. total # items in database
-  
+
   // Add new Mongoose find() request: total # records
-  Post
-    .find()
+  Post.find()
     .countDocuments()
-    .then(count => {
+    .then((count) => {
       totalItems = count;
 
-       // Mongoose req. to get all posts in database to render
-       return Post
-        .find()
+      // Mongoose req. to get all posts in database to render
+      return Post.find()
         .skip((currentPage - 1) * perPage)
         .limit(perPage);
-        
     })
     .then((posts) => {
       res.status(200).json({
         message: "All existing posts fetched successfully!",
         posts: posts,
-        totalItems: totalItems
+        totalItems: totalItems,
       });
     })
-    .catch(err => {
+    .catch((err) => {
       if (!err.statusCode) {
         err.statusCode = 500;
       }
@@ -64,14 +62,14 @@ exports.createPost = (req, res, next) => {
   const title = req.body.title;
   const content = req.body.content;
 
+  let creator;
+
   // Setup the model used to create a post
   const post = new Post({
     title: title,
     content: content,
     imageUrl: imageUrl, // now to replace the dummy data with actual file upload
-    creator: {
-      name: "Mike Ramos",
-    },
+    creator: req.userId, // to get the userId
   });
 
   // steps to officially create new post in db
@@ -79,9 +77,18 @@ exports.createPost = (req, res, next) => {
     .save()
     .then((result) => {
       console.log(result);
+      return User.findById(req.userId);
+    })
+    .then((user) => {
+      creator = user;
+      user.posts.push(post);
+      return user.save();
+    })
+    .then((result) => {
       res.status(201).json({
         message: "Post created successfully!",
-        post: result,
+        post: post,
+        creator: { _id: creator._id, name: creator.name },
       });
     })
     .catch((err) => {
@@ -120,42 +127,43 @@ exports.updatePost = (req, res, next) => {
   const postId = req.params.postId; // To extract the postId from the req params
 
   // first validate the inputs for the new post
-   const errors = validationResult(req);
-   if (!errors.isEmpty()) {
-     const error = new Error(
-       "Data validation error! Entered data does NOT meet the requirements!"
-     );
-     error.statusCode = 422;
-     throw error;
-   }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error(
+      "Data validation error! Entered data does NOT meet the requirements!"
+    );
+    error.statusCode = 422;
+    throw error;
+  }
 
-  
   const title = req.body.title; // To extract the the title from req body
   const content = req.body.content; // to extract the content from body
-  let imageUrl = req.body.image; 
+  let imageUrl = req.body.image;
 
   if (req.file) {
     imageUrl = req.file.path.replace("\\", "/"); // From the workaround
   }
 
-  if (!imageUrl) { // a validation
+  if (!imageUrl) {
+    // a validation
     const error = new Error("No image file chosen.");
     error.statusCode = 422;
     throw error;
   }
-  
+
   // Now to update the database using the Post model and Mongoose' findById()
-  Post
-    .findById(postId)
-    .then(post => { 
-      if (!post) { // First check if a existing post found
-        const error = new Error('Cant find the existing post');
+  Post.findById(postId)
+    .then((post) => {
+      if (!post) {
+        // First check if a existing post found
+        const error = new Error("Cant find the existing post");
         error.statusCode = 500;
         throw error;
       }
       // ..if post is found in database
       // 1st check imageUrl of the prior existing post (To use new helper)
-      if (imageUrl !== post.imageUrl) { // meaning it changed...
+      if (imageUrl !== post.imageUrl) {
+        // meaning it changed...
         clearImage(post.imageUrl);
       }
       post.title = title;
@@ -163,13 +171,13 @@ exports.updatePost = (req, res, next) => {
       post.content = content;
       return post.save();
     })
-    .then(result => {
+    .then((result) => {
       res.status(200).json({
-        message: 'Post updated!',
-        post: result
+        message: "Post updated!",
+        post: result,
       });
     })
-    .catch(err => {
+    .catch((err) => {
       if (!err.statusCode) {
         err.statusCode = 500;
       }
@@ -177,45 +185,39 @@ exports.updatePost = (req, res, next) => {
     });
 };
 
-exports.deletePost = ((req, res, next) => {
+exports.deletePost = (req, res, next) => {
   const postId = req.params.postId;
-  Post
-    .findById(postId)
-    .then(post => {
+  Post.findById(postId)
+    .then((post) => {
       // 1st check if post exists in database
       if (!post) {
-        const error = new Error('Could not find post.');
+        const error = new Error("Could not find post.");
         error.statusCode = 400;
         throw error;
       }
-      // Verify identity of logged in user 
-      
+      // Verify identity of logged in user
+
       // Clear out the post's image stored
       clearImage(post.imageUrl);
 
       // To formally delete post from database
       return Post.findByIdAndDelete(postId);
-
     })
-    .then(result => {
+    .then((result) => {
       console.log(result);
       res.status(200).json({
-        message: 'Post has sucessfully been deleted!'
+        message: "Post has sucessfully been deleted!",
       });
     })
-    .catch(err => {
+    .catch((err) => {
       if (!err.statusCode) {
         err.statusCode = 500;
       }
       next(err);
     });
-
-
-});
-
+};
 
 const clearImage = (filePath) => {
-  filePath = path.join(__dirname, '..', filePath);
-  fs.unlink(filePath, err => console.log(err));
-}
-
+  filePath = path.join(__dirname, "..", filePath);
+  fs.unlink(filePath, (err) => console.log(err));
+};
