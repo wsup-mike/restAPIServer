@@ -6,37 +6,56 @@ const { validationResult } = require("express-validator");
 const Post = require("../models/post");
 const User = require("../models/user");
 
-exports.getPosts = (req, res, next) => {
-  //Pagination setup (2 posts per page)
+// getPosts - Using async await for asynchronous operations
+exports.getPosts = async (req, res, next) => {
   const currentPage = req.query.page || 1;
   const perPage = 2; // Default # posts to display
-  let totalItems; // used to det. total # items in database
+  // let totalItems; // used to det. total # items in database
 
-  // Add new Mongoose find() request: total # records
-  Post.find()
-    .countDocuments()
-    .then((count) => {
-      totalItems = count;
+  const totalItems = await Post.find().countDocuments();
 
-      // Mongoose req. to get all posts in database to render
-      return Post.find()
-        .skip((currentPage - 1) * perPage)
-        .limit(perPage);
-    })
-    .then((posts) => {
-      res.status(200).json({
-        message: "All existing posts fetched successfully!",
-        posts: posts,
-        totalItems: totalItems,
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    });
+  const posts = await Post.find()
+    .skip((currentPage - 1) * perPage)
+    .limit(perPage);
+
+  res.status(200).json({
+    message: "Fetched posts successfully.",
+    posts: posts,
+    totalItems: totalItems,
+  });
 };
+
+// exports.getPosts = (req, res, next) => {
+//   //Pagination setup (2 posts per page)
+//   const currentPage = req.query.page || 1;
+//   const perPage = 2; // Default # posts to display
+//   let totalItems; // used to det. total # items in database
+
+//   // Add new Mongoose find() request: total # records
+//   Post.find()
+//     .countDocuments()
+//     .then((count) => {
+//       totalItems = count;
+
+//       // Mongoose req. to get all posts in database to render
+//       return Post.find()
+//         .skip((currentPage - 1) * perPage)
+//         .limit(perPage);
+//     })
+//     .then((posts) => {
+//       res.status(200).json({
+//         message: "All existing posts fetched successfully!",
+//         posts: posts,
+//         totalItems: totalItems,
+//       });
+//     })
+//     .catch((err) => {
+//       if (!err.statusCode) {
+//         err.statusCode = 500;
+//       }
+//       next(err);
+//     });
+// };
 
 exports.createPost = (req, res, next) => {
   // first validate the inputs for the new post
