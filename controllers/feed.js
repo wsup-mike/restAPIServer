@@ -14,15 +14,23 @@ exports.getPosts = async (req, res, next) => {
 
   const totalItems = await Post.find().countDocuments();
 
-  const posts = await Post.find()
-    .skip((currentPage - 1) * perPage)
-    .limit(perPage);
+  try {
+    const posts = await Post.find()
+      .populate('creator')
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage);
 
-  res.status(200).json({
-    message: "Fetched posts successfully.",
-    posts: posts,
-    totalItems: totalItems,
-  });
+    res.status(200).json({
+      message: "Fetched posts successfully.",
+      posts: posts,
+      totalItems: totalItems,
+    });
+} catch(err){
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 // exports.getPosts = (req, res, next) => {
@@ -39,6 +47,7 @@ exports.getPosts = async (req, res, next) => {
 
 //       // Mongoose req. to get all posts in database to render
 //       return Post.find()
+          // .populate('creator')
 //         .skip((currentPage - 1) * perPage)
 //         .limit(perPage);
 //     })
