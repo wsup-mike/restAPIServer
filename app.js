@@ -74,6 +74,9 @@ mongoose
     console.log("Server now active at Port 8080.");
     const io = require("socket.io")(server); // Pass the 'server' to socket.io to establish abilty to create new web socket connections (Returns an object we can use)
     console.log("Web Sockets ready for connections to be created.");
+    io.io.on("connection", (socket) => {
+      console.log("New client has connected.");
+    });
   })
   .catch((err) => {
     console.log(err);
