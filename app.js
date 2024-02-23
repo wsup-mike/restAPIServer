@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require("uuid");
 const bodyParser = require("body-parser");
 
 const feedRoutes = require("./routes/feed");
-const authRoutes = require('./routes/auth');
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
@@ -55,7 +55,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/feed", feedRoutes);
-app.use('/auth', authRoutes);
+app.use("/auth", authRoutes);
 
 app.use((error, req, res, next) => {
   console.log(error);
@@ -70,8 +70,10 @@ mongoose
     "mongodb+srv://coolsuedeadidas:1password1@cluster0.s9dqd5j.mongodb.net/messages?retryWrites=true&w=majority"
   )
   .then((result) => {
-    app.listen(8080);
+    const server = app.listen(8080); // Save the HTTP server to a variable
     console.log("Server now active at Port 8080.");
+    const io = require("socket.io")(server); // Pass the 'server' to socket.io to establish abilty to create new web socket connections (Returns an object we can use)
+    console.log("Web Sockets ready for connections to be created.");
   })
   .catch((err) => {
     console.log(err);
