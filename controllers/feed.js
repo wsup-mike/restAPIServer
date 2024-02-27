@@ -3,6 +3,8 @@ const path = require("path");
 
 const { validationResult } = require("express-validator");
 
+const io = require("../socket");
+
 const Post = require("../models/post");
 const User = require("../models/user");
 
@@ -16,7 +18,7 @@ exports.getPosts = async (req, res, next) => {
 
   try {
     const posts = await Post.find()
-      .populate('creator')
+      .populate("creator")
       .skip((currentPage - 1) * perPage)
       .limit(perPage);
 
@@ -25,7 +27,7 @@ exports.getPosts = async (req, res, next) => {
       posts: posts,
       totalItems: totalItems,
     });
-} catch(err){
+  } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -47,7 +49,7 @@ exports.getPosts = async (req, res, next) => {
 
 //       // Mongoose req. to get all posts in database to render
 //       return Post.find()
-          // .populate('creator')
+// .populate('creator')
 //         .skip((currentPage - 1) * perPage)
 //         .limit(perPage);
 //     })
@@ -113,6 +115,12 @@ exports.createPost = (req, res, next) => {
       return user.save();
     })
     .then((result) => {
+      // To use getIO()
+      io.getIO().emit("posts", {
+        action: "create",
+        post: post,
+      });
+
       res.status(201).json({
         message: "Post created successfully!",
         post: post,
@@ -191,13 +199,12 @@ exports.updatePost = (req, res, next) => {
 
       // Next, to verify if 'creator' of the post is equal to userId of the request (requestor)
       if (post.creator.toString() !== req.userId) {
-       const error = new Error('Not authorized to edit or delete post.');
-       error.statusCode = 403;
-       throw error; 
+        const error = new Error("Not authorized to edit or delete post.");
+        error.statusCode = 403;
+        throw error;
       }
 
       // but if they ARE the 'creator'...
-
 
       // 1st check imageUrl of the prior existing post (To use new helper)
       if (imageUrl !== post.imageUrl) {
@@ -233,15 +240,15 @@ exports.deletePost = (req, res, next) => {
         error.statusCode = 400;
         throw error;
       }
-      
+
       // Next, to verify if 'creator' of the post is equal to userId of the request (requestor)
       if (post.creator.toString() !== req.userId) {
-        const error = new Error('Not authorized to edit or delete post.');
+        const error = new Error("Not authorized to edit or delete post.");
         error.statusCode = 403;
-        throw error; 
-       }
- 
-       // but if they ARE the 'creator'...they can proceed with deletion
+        throw error;
+      }
+
+      // but if they ARE the 'creator'...they can proceed with deletion
 
       // Clear out the post's image stored
       clearImage(post.imageUrl);
@@ -251,13 +258,13 @@ exports.deletePost = (req, res, next) => {
     })
     .then((result) => {
       // To 'pull our the reference' to original user of post
-      return User.findById(req.userId);    
+      return User.findById(req.userId);
     })
-    .then(user => {
+    .then((user) => {
       user.posts.pull(postId);
       return user.save();
     })
-    .then(result => {
+    .then((result) => {
       res.status(200).json({
         message: "Post has sucessfully been deleted!",
       });

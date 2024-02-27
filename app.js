@@ -74,12 +74,9 @@ mongoose
 
     console.log("Server now active at Port 8080.");
 
-    const io = require("socket.io")(server, {
-      cors: {
-        origin: "*",
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-      },
-    }); // Pass the 'server' to socket.io to establish abilty to create new web socket connections (Returns an object we can use). Here too is the CORS implementation.
+    // const io = require("socket.io")(server, {
+    const io = require("./socket").init(server);
+    // Pass the 'server' to socket.io to establish abilty to create new web socket connections (Returns an object we can use). Here too is the CORS implementation.
 
     console.log("Web Sockets ready for connections to be created.");
 
